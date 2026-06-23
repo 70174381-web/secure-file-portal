@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Internee.pk — Secure File Portal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --maroon:    #64242F;
+    --rose:      #B44446;
+    --blush:     #FC8F8F;
+    --dust:      #DFD9D8;
+    --maroon-d:  #471A23;
+    --rose-d:    #8C3536;
+    --cream:     #FBF7F5;
+    --paper:     #FFFFFF;
+    --ink:       #3A2226;
+    --ink-soft:  #7A5C5F;
+    --line:      rgba(100,36,47,0.12);
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Fraunces', serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .blob { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
+  .blob.a { width: 480px; height: 480px; background: var(--blush); opacity: 0.35; top: -180px; right: -140px; }
+  .blob.b { width: 420px; height: 420px; background: var(--dust); opacity: 0.5; bottom: -160px; left: -140px; }
+  .blob.c { width: 280px; height: 280px; background: var(--rose); opacity: 0.12; top: 40%; left: 50%; transform: translate(-50%,-50%); }
+
+  .wrap { position: relative; z-index: 1; max-width: 580px; margin: 0 auto; padding: 48px 20px 80px; }
+
+  .header { text-align: center; margin-bottom: 40px; }
+  .header .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--rose-d); font-weight: 600; margin-bottom: 14px;
+    background: rgba(180,68,70,0.08); padding: 6px 14px; border-radius: 100px;
+    border: 1px solid rgba(180,68,70,0.15);
+  }
+  .header .eyebrow svg { width: 12px; height: 12px; stroke: var(--rose-d); fill: none; stroke-width: 2.2; }
+  .header h1 { font-family: var(--serif); font-weight: 600; font-size: 34px; color: var(--maroon-d); letter-spacing: -0.5px; margin-bottom: 10px; }
+  .header p { color: var(--ink-soft); font-size: 14.5px; line-height: 1.6; max-width: 420px; margin: 0 auto; }
+
+  .palette-strip { display: flex; height: 8px; border-radius: 100px; overflow: hidden; margin: 22px auto 0; max-width: 220px; box-shadow: 0 2px 10px rgba(100,36,47,0.15); }
+  .palette-strip div { flex: 1; }
+
+  .steps { display: flex; align-items: center; justify-content: center; margin: 36px 0 32px; }
+  .step-dot { display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; }
+  .step-dot .dot {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; font-family: var(--mono);
+    border: 1.5px solid var(--dust); color: var(--ink-soft);
+    background: var(--paper); transition: all 0.3s ease;
+  }
+  .step-dot.active .dot { border-color: var(--rose); color: var(--rose-d); background: rgba(180,68,70,0.08); box-shadow: 0 0 0 5px rgba(180,68,70,0.08); }
+  .step-dot.done .dot   { border-color: var(--maroon); color: #fff; background: var(--maroon); }
+  .step-dot .label { font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+  .step-dot.active .label { color: var(--rose-d); font-weight: 500; }
+  .step-dot.done .label   { color: var(--maroon-d); font-weight: 500; }
+  .step-line { flex: 1; height: 1.5px; max-width: 64px; background: var(--dust); margin-bottom: 24px; transition: background 0.4s; }
+  .step-line.done { background: var(--rose); }
+
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 28px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(100,36,47,0.04); transition: box-shadow 0.3s, border-color 0.3s; }
+  .card.active-card { border-color: rgba(180,68,70,0.3); box-shadow: 0 12px 32px rgba(100,36,47,0.08); }
+
+  .card-head { display: flex; align-items: center; gap: 13px; margin-bottom: 22px; }
+  .card-icon { width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--blush), var(--rose)); }
+  .card-icon svg { width: 17px; height: 17px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .card-head h2 { font-size: 15.5px; font-weight: 600; color: var(--maroon-d); font-family: var(--serif); }
+  .card-head p  { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+
+  label { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; margin-top: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+  label:first-of-type { margin-top: 0; }
+  .label-row { display: flex; justify-content: space-between; align-items: center; }
+  .label-row label { margin: 0; }
+  .label-action { font-size: 11px; color: var(--rose-d); cursor: pointer; font-weight: 600; text-transform: none; letter-spacing: 0; background: none; border: none; font-family: inherit; }
+  .label-action:hover { text-decoration: underline; }
+
+  input[type="text"], input[type="password"] { width: 100%; padding: 11px 14px; background: var(--cream); border: 1.5px solid var(--dust); border-radius: 10px; color: var(--ink); font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+  input:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(180,68,70,0.1); }
+  input::placeholder { color: var(--ink-soft); opacity: 0.55; }
+
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 40px; }
+  .pw-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--ink-soft); padding: 4px; display: flex; transition: color 0.2s; }
+  .pw-toggle:hover { color: var(--rose-d); }
+  .pw-toggle svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .strength-bar { display: flex; gap: 4px; margin-top: 8px; }
+  .strength-seg { flex: 1; height: 3px; border-radius: 2px; background: var(--dust); transition: background 0.3s; }
+  .strength-label { font-size: 11px; color: var(--ink-soft); margin-top: 4px; height: 14px; }
+
+  .drop-zone { border: 1.5px dashed rgba(180,68,70,0.3); border-radius: 13px; padding: 30px 20px; text-align: center; cursor: pointer; transition: all 0.25s; position: relative; background: rgba(252,143,143,0.05); }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--rose); background: rgba(252,143,143,0.1); }
+  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { margin: 0 auto 10px; width: 36px; height: 36px; color: var(--rose-d); opacity: 0.6; }
+  .drop-icon svg { width: 36px; height: 36px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .drop-zone p { font-size: 13px; color: var(--ink-soft); }
+  .drop-zone span { color: var(--rose-d); font-weight: 600; }
+
+  .file-item { display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: var(--cream); border-radius: 10px; margin-top: 10px; border: 1px solid var(--dust); }
+  .file-item .ftype-icon { width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--blush), var(--rose)); }
+  .file-item .ftype-icon svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 2; }
+  .file-item .finfo { flex: 1; min-width: 0; }
+  .file-item .fname { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+  .file-item .fsize { font-size: 11px; color: var(--ink-soft); }
+  .file-item .fremove { background: none; border: none; cursor: pointer; color: var(--ink-soft); padding: 4px; display: flex; transition: color 0.2s; flex-shrink: 0; }
+  .file-item .fremove:hover { color: var(--rose-d); }
+  .file-item .fremove svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  .btn { margin-top: 20px; width: 100%; padding: 13px; background: linear-gradient(135deg, var(--rose), var(--maroon)); border: none; border-radius: 11px; color: #fff; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: 0.2px; transition: all 0.25s; position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(100,36,47,0.18); }
+  .btn:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(100,36,47,0.28); transform: translateY(-1px); }
+  .btn:active:not(:disabled) { transform: translateY(0); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+  .btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-success { background: linear-gradient(135deg, #6FAE8C, #4F8E6E); }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  .spinner.dark { border: 2px solid rgba(180,68,70,0.2); border-top-color: var(--rose-d); }
+
+  .progress-wrap { margin-top: 14px; display: none; }
+  .progress-wrap.show { display: block; }
+  .progress-track { height: 5px; background: var(--dust); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blush), var(--rose)); border-radius: 3px; width: 0%; transition: width 0.4s ease; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+
+  #toast-container { position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100; pointer-events: none; }
+  .toast { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; font-size: 13px; color: var(--ink); box-shadow: 0 10px 30px rgba(100,36,47,0.15); pointer-events: all; animation: toast-in 0.3s ease; max-width: 320px; }
+  @keyframes toast-in { from { opacity:0; transform: translateX(20px); } }
+  .toast.success .toast-dot { background: #4F8E6E; }
+  .toast.error   .toast-dot { background: #C24545; }
+  .toast.info    .toast-dot { background: var(--rose); }
+  .toast-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .token-box { margin-top: 14px; padding: 12px 14px; background: var(--cream); border: 1px solid var(--dust); border-radius: 10px; font-family: var(--mono); font-size: 11px; color: var(--rose-d); word-break: break-all; max-height: 72px; overflow-y: auto; display: none; }
+  .token-box.show { display: block; }
+
+  .key-box { margin-top: 14px; padding: 12px 14px; background: linear-gradient(135deg, rgba(252,143,143,0.12), rgba(180,68,70,0.06)); border: 1px solid rgba(180,68,70,0.2); border-radius: 12px; display: none; }
+  .key-box.show { display: block; }
+  .key-row { display: flex; align-items: center; gap: 8px; }
+  .key-row span { font-family: var(--mono); font-size: 11px; color: var(--maroon-d); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .copy-btn { background: none; border: none; cursor: pointer; color: var(--rose-d); padding: 4px; display: flex; transition: transform 0.15s; flex-shrink: 0; }
+  .copy-btn:active { transform: scale(0.9); }
+  .copy-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .expiry-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--ink-soft); }
+  .expiry-row svg { width: 12px; height: 12px; stroke: var(--rose-d); fill: none; stroke-width: 2; }
+  .expiry-row .countdown { font-family: var(--mono); color: var(--rose-d); font-weight: 600; }
+
+  .enc-anim { display: none; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; background: rgba(252,143,143,0.08); border: 1px solid rgba(180,68,70,0.15); margin-top: 12px; }
+  .enc-anim.show { display: flex; }
+  .enc-anim span { font-size: 12px; color: var(--rose-d); font-family: var(--mono); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .enc-cursor { animation: blink 1s ease-in-out infinite; }
+
+  .history-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 4px 0; }
+  .history-toggle .htitle { display: flex; align-items: center; gap: 8px; }
+  .history-toggle svg.hicon { width: 16px; height: 16px; stroke: var(--rose-d); fill: none; stroke-width: 2; }
+  .history-toggle .hchev { width: 14px; height: 14px; stroke: var(--ink-soft); fill: none; stroke-width: 2; transition: transform 0.25s; }
+  .history-toggle.open .hchev { transform: rotate(180deg); }
+  .history-list { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+  .history-list.open { max-height: 400px; margin-top: 14px; }
+  .history-empty { font-size: 12.5px; color: var(--ink-soft); padding: 16px 0; text-align: center; }
+  .hist-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--cream); border-radius: 10px; margin-bottom: 8px; border: 1px solid var(--dust); }
+  .hist-item .ftype-icon { width: 28px; height: 28px; }
+  .hist-item .hinfo { flex: 1; min-width: 0; }
+  .hist-item .hname { font-size: 12.5px; color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-item .htime { font-size: 10.5px; color: var(--ink-soft); }
+  .hist-item .huse { font-size: 11px; color: var(--rose-d); font-weight: 600; cursor: pointer; background: none; border: none; flex-shrink: 0; }
+  .hist-item .huse:hover { text-decoration: underline; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--dust); border-radius: 2px; }
+
+  .footer { text-align: center; margin-top: 36px; font-size: 12px; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .footer svg { width: 12px; height: 12px; stroke: var(--rose-d); fill: none; stroke-width: 2.5; }
+
+  .confetti-piece { position: fixed; top: -20px; z-index: 200; pointer-events: none; border-radius: 2px; animation: confetti-fall linear forwards; }
+  @keyframes confetti-fall { to { transform: translateY(110vh) rotate(540deg); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div class="blob a"></div>
+<div class="blob b"></div>
+<div class="blob c"></div>
+<div id="toast-container"></div>
+
+<div class="wrap">
+
+  <div class="header">
+    <div class="eyebrow">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Internee.pk
+    </div>
+    <h1>Secure file portal</h1>
+    <p>Files are encrypted in your browser before they ever leave your device — end-to-end, every time.</p>
+    <div class="palette-strip">
+      <div style="background:#64242F"></div>
+      <div style="background:#B44446"></div>
+      <div style="background:#FC8F8F"></div>
+      <div style="background:#DFD9D8"></div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step-dot active" id="s1" onclick="focusStep(1)"><div class="dot">1</div><div class="label">Authenticate</div></div>
+    <div class="step-line" id="line1"></div>
+    <div class="step-dot" id="s2" onclick="focusStep(2)"><div class="dot">2</div><div class="label">Upload</div></div>
+    <div class="step-line" id="line2"></div>
+    <div class="step-dot" id="s3" onclick="focusStep(3)"><div class="dot">3</div><div class="label">Download</div></div>
+  </div>
+
+  <!-- Card 1: Token -->
+  <div class="card active-card" id="card1">
+    <div class="card-head">
+      <div class="card-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+      <div><h2>Get access token</h2><p>Identify yourself to the portal</p></div>
+    </div>
+    <label>User ID</label>
+    <input type="text" id="userId" placeholder="e.g. user_123" value="user_123">
+    <button class="btn" id="tokenBtn" onclick="getToken()">
+      <svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+      Generate access token
+    </button>
+    <div id="tokenBox" class="token-box"></div>
+  </div>
+
+  <!-- Card 2: Upload -->
+  <div class="card" id="card2">
+    <div class="card-head">
+      <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+      <div><h2>Encrypt and upload</h2><p>AES-256-GCM · encrypted before leaving your device</p></div>
+    </div>
+
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" onchange="onFileChosen(this)">
+      <div class="drop-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
+      <p><span>Choose a file</span> or drag it here</p>
+    </div>
+    <div id="fileChosen"></div>
+
+    <div class="label-row">
+      <label>Encryption password</label>
+      <button class="label-action" onclick="generatePassword()">Generate strong password</button>
+    </div>
+    <div class="pw-wrap">
+      <input type="password" id="uploadPassword" placeholder="Choose a strong password" oninput="checkStrength(this.value)">
+      <button class="pw-toggle" onclick="togglePw('uploadPassword', this)" type="button">
+        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div class="strength-bar" id="strengthBar">
+      <div class="strength-seg" id="seg1"></div><div class="strength-seg" id="seg2"></div>
+      <div class="strength-seg" id="seg3"></div><div class="strength-seg" id="seg4"></div>
+    </div>
+    <div class="strength-label" id="strengthLabel"></div>
+
+    <div class="enc-anim" id="encAnim">
+      <div class="spinner dark"></div>
+      <span id="encMsg">Encrypting<span class="enc-cursor">▌</span></span>
+    </div>
+
+    <div class="progress-wrap" id="uploadProgress">
+      <div class="progress-track"><div class="progress-fill" id="uploadBar"></div></div>
+      <div class="progress-label"><span id="uploadPhase">Uploading…</span><span id="uploadPct">0%</span></div>
+    </div>
+
+    <button class="btn" id="uploadBtn" onclick="encryptAndUpload()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Encrypt and upload
+    </button>
+
+    <div id="s3KeyBox" class="key-box">
+      <div class="key-row">
+        <span id="s3KeyText">—</span>
+        <button class="copy-btn" onclick="copyKey()" title="Copy file key">
+          <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+      </div>
+      <div class="expiry-row">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        File stored locally · active for <span class="countdown" id="countdown">session</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3: Download -->
+  <div class="card" id="card3">
+    <div class="card-head">
+      <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div><h2>Download and decrypt</h2><p>Decrypted locally · server never sees plaintext</p></div>
+    </div>
+
+    <label>File key</label>
+    <input type="text" id="s3KeyInput" placeholder="Filled automatically after upload">
+
+    <label>Decryption password</label>
+    <div class="pw-wrap">
+      <input type="password" id="downloadPassword" placeholder="Same password used during upload">
+      <button class="pw-toggle" onclick="togglePw('downloadPassword', this)" type="button">
+        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+
+    <label>Original file type (auto-filled after upload)</label>
+    <input type="text" id="fileType" placeholder="application/pdf" value="application/octet-stream">
+
+    <div class="progress-wrap" id="downloadProgress">
+      <div class="progress-track"><div class="progress-fill" id="downloadBar"></div></div>
+      <div class="progress-label"><span id="downloadPhase">Downloading…</span><span id="downloadPct">0%</span></div>
+    </div>
+
+    <button class="btn" id="downloadBtn" onclick="downloadAndDecrypt()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download and decrypt
+    </button>
+  </div>
+
+  <!-- History card -->
+  <div class="card" id="historyCard">
+    <div class="history-toggle" id="historyToggle" onclick="toggleHistory()">
+      <div class="htitle">
+        <svg class="hicon" viewBox="0 0 24 24"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        <h2 style="font-size:14px;font-family:var(--serif);color:var(--maroon-d);font-weight:600">Session history</h2>
+      </div>
+      <svg class="hchev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">No uploads yet this session</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    End-to-end encrypted · Zero server-side plaintext access
+  </div>
+
+</div>
+
+<script>
+const API = '/api';
+let authToken = '';
+let uploadHistory = JSON.parse(localStorage.getItem('portal-history') || '[]');
+let countdownTimer = null;
+
+/* ── Toast ── */
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.innerHTML = `<div class="toast-dot"></div><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+/* ── Confetti ── */
+function fireConfetti() {
+  const colors = ['#64242F','#B44446','#FC8F8F','#DFD9D8'];
+  for (let i = 0; i < 28; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const size = 5 + Math.random() * 5;
+    p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}vw;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${1.6+Math.random()*1.2}s;animation-delay:${Math.random()*0.3}s`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 3200);
+  }
+}
+
+/* ── Step indicator ── */
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el   = document.getElementById('s' + i);
+    const card = document.getElementById('card' + i);
+    el.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+    el.querySelector('.dot').textContent = i < n ? '✓' : i;
+    card.classList.toggle('active-card', i === n);
+  });
+  [1,2].forEach(i => {
+    const l = document.getElementById('line' + i);
+    if (l) l.className = 'step-line' + (i < n ? ' done' : '');
+  });
+}
+function focusStep(n) { setStep(n); }
+
+/* ── Password visibility ── */
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.querySelector('svg').innerHTML = show
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+/* ── Password generator ── */
+function generatePassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+  const arr = new Uint32Array(18);
+  crypto.getRandomValues(arr);
+  let pw = '';
+  for (let i = 0; i < 18; i++) pw += chars[arr[i] % chars.length];
+  const f = document.getElementById('uploadPassword');
+  f.type = 'text'; f.value = pw;
+  checkStrength(pw);
+  toast('Strong password generated — save it somewhere safe!', 'info');
+}
+
+/* ── Strength meter ── */
+function checkStrength(pw) {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
+  const colors = ['','#C24545','#D99A3D','#7FA86B','#4F8E6E'];
+  const labels = ['','Weak','Fair','Good','Strong'];
+  for (let i = 1; i <= 4; i++)
+    document.getElementById('seg'+i).style.background = i <= score ? colors[score] : 'var(--dust)';
+  const lbl = document.getElementById('strengthLabel');
+  lbl.textContent = pw.length ? (labels[score] || 'Weak') : '';
+  lbl.style.color  = colors[score] || 'var(--ink-soft)';
+}
+
+/* ── File icon ── */
+function fileIconSvg(name) {
+  const ext = (name||'').split('.').pop().toLowerCase();
+  if (['png','jpg','jpeg','gif','webp','svg'].includes(ext))
+    return '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>';
+  if (ext === 'pdf')
+    return '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>';
+  if (['zip','rar','7z'].includes(ext))
+    return '<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>';
+  if (['doc','docx'].includes(ext))
+    return '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>';
+  return '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>';
+}
+
+/* ── File chosen ── */
+function onFileChosen(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  document.getElementById('fileChosen').innerHTML = `
+    <div class="file-item">
+      <div class="ftype-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${fileIconSvg(file.name)}</svg></div>
+      <div class="finfo"><div class="fname">${file.name}</div><div class="fsize">${formatBytes(file.size)}</div></div>
+      <button class="fremove" onclick="clearFile()" title="Remove">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`;
+}
+function clearFile() {
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileChosen').innerHTML = '';
+}
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+/* ── Drag & drop ── */
+const dz = document.getElementById('dropZone');
+['dragenter','dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('drag-over'); }));
+['dragleave','drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('drag-over'); }));
+dz.addEventListener('drop', ev => {
+  const files = ev.dataTransfer.files;
+  if (files.length) { document.getElementById('fileInput').files = files; onFileChosen(document.getElementById('fileInput')); }
+});
+
+/* ── Progress helpers ── */
+function showProgress(id, barId, pctId, phaseId, pct, phase) {
+  document.getElementById(id).classList.add('show');
+  document.getElementById(barId).style.width = pct + '%';
+  document.getElementById(pctId).textContent = pct + '%';
+  if (phase) document.getElementById(phaseId).textContent = phase;
+}
+function hideProgress(id) { document.getElementById(id).classList.remove('show'); }
+
+/* ── Token ── */
+async function getToken() {
+  const userId = document.getElementById('userId').value.trim();
+  if (!userId) return toast('Enter a user ID first', 'error');
+  const btn = document.getElementById('tokenBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Generating…';
+  try {
+    const res  = await fetch('/test-token?userId=' + encodeURIComponent(userId));
+    const data = await res.json();
+    if (!data.token) throw new Error('No token');
+    authToken = data.token;
+    const box = document.getElementById('tokenBox');
+    box.textContent = authToken;
+    box.classList.add('show');
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Token active';
+    btn.classList.add('btn-success');
+    setStep(2);
+    toast('Access token generated successfully', 'success');
+  } catch {
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> Generate access token';
+    toast('Server unreachable — is node server.js running?', 'error');
+  }
+}
+
+/* ── AES-256-GCM encrypt ── */
+async function encryptFile(file, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const km   = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  const key  = await crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:100000, hash:'SHA-256' }, km, { name:'AES-GCM', length:256 }, false, ['encrypt']);
+  const enc  = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, await file.arrayBuffer());
+  const out  = new Uint8Array(28 + enc.byteLength);
+  out.set(salt,0); out.set(iv,16); out.set(new Uint8Array(enc),28);
+  return new Blob([out], { type:'application/octet-stream' });
+}
+
+/* ── AES-256-GCM decrypt ── */
+async function decryptFile(blob, password, type) {
+  const d    = new Uint8Array(await blob.arrayBuffer());
+  const salt = d.slice(0,16), iv = d.slice(16,28), ct = d.slice(28);
+  const km   = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  const key  = await crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:100000, hash:'SHA-256' }, km, { name:'AES-GCM', length:256 }, false, ['decrypt']);
+  const dec  = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+  return new Blob([dec], { type });
+}
+
+/* ── History ── */
+function saveHistory(entry) {
+  uploadHistory.unshift(entry);
+  uploadHistory = uploadHistory.slice(0,12);
+  localStorage.setItem('portal-history', JSON.stringify(uploadHistory));
+  renderHistory();
+}
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!uploadHistory.length) { list.innerHTML = '<div class="history-empty">No uploads yet this session</div>'; return; }
+  list.innerHTML = uploadHistory.map(h => `
+    <div class="hist-item">
+      <div class="ftype-icon" style="width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--blush),var(--rose));flex-shrink:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">${fileIconSvg(h.name)}</svg>
+      </div>
+      <div class="hinfo"><div class="hname">${h.name}</div><div class="htime">${h.time}</div></div>
+      <button class="huse" onclick="useHistoryKey('${h.key}')">Use key</button>
+    </div>`).join('');
+}
+function useHistoryKey(key) {
+  document.getElementById('s3KeyInput').value = key;
+  setStep(3);
+  toast('File key loaded into download field', 'info');
+}
+function toggleHistory() {
+  document.getElementById('historyToggle').classList.toggle('open');
+  document.getElementById('historyList').classList.toggle('open');
+}
+
+/* ── UPLOAD FLOW (local storage mode) ── */
+async function encryptAndUpload() {
+  if (!authToken) return toast('Generate a token first (Step 1)', 'error');
+  const file = document.getElementById('fileInput').files[0];
+  const pw   = document.getElementById('uploadPassword').value;
+  if (!file) return toast('Choose a file first', 'error');
+  if (!pw)   return toast('Enter an encryption password', 'error');
+
+  const btn = document.getElementById('uploadBtn');
+  const enc = document.getElementById('encAnim');
+  btn.disabled = true;
+  enc.classList.add('show');
+  document.getElementById('encMsg').innerHTML = 'Encrypting file<span class="enc-cursor">▌</span>';
+  showProgress('uploadProgress','uploadBar','uploadPct','uploadPhase', 15, 'Encrypting…');
+
+  let encBlob;
+  try {
+    encBlob = await encryptFile(file, pw);
+  } catch(e) {
+    enc.classList.remove('show');
+    hideProgress('uploadProgress');
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Encrypt and upload';
+    return toast('Encryption failed: ' + e.message, 'error');
+  }
+
+  showProgress('uploadProgress','uploadBar','uploadPct','uploadPhase', 50, 'Uploading…');
+  document.getElementById('encMsg').innerHTML = 'Uploading encrypted file<span class="enc-cursor">▌</span>';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', encBlob, 'encrypted.bin');
+    // NEW: tell the server the real name/type of the original file,
+    // so it can be handed back to us on download. Without this the
+    // server has no way to know — it only ever sees the encrypted blob.
+    formData.append('originalFilename', file.name);
+    formData.append('contentType', file.type || 'application/octet-stream');
+
+    const upRes = await fetch('/api/upload-file', {
+      method:  'POST',
+      headers: { 'Authorization': 'Bearer ' + authToken },
+      body:    formData
+    });
+
+    if (!upRes.ok) {
+      const errText = await upRes.text();
+      throw new Error('Server responded ' + upRes.status + ': ' + errText);
+    }
+
+    const result = await upRes.json();
+    if (!result.s3Key) throw new Error('No file key returned from server');
+
+    showProgress('uploadProgress','uploadBar','uploadPct','uploadPhase', 100, 'Complete ✓');
+    enc.classList.remove('show');
+
+    document.getElementById('s3KeyInput').value   = result.s3Key;
+    document.getElementById('s3KeyText').textContent = result.s3Key;
+    document.getElementById('s3KeyBox').classList.add('show');
+    // NEW: pre-fill the download card's file type field too, as a
+    // convenience — the server will also return it automatically.
+    document.getElementById('fileType').value = file.type || 'application/octet-stream';
+
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Uploaded successfully';
+    btn.classList.add('btn-success');
+    setStep(3);
+    toast('File encrypted and uploaded successfully!', 'success');
+    fireConfetti();
+
+    saveHistory({ name: file.name, key: result.s3Key, time: new Date().toLocaleString() });
+    setTimeout(() => hideProgress('uploadProgress'), 1500);
+
+  } catch(e) {
+    enc.classList.remove('show');
+    hideProgress('uploadProgress');
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Encrypt and upload';
+    toast('Upload failed: ' + e.message, 'error');
+  }
+}
+
+/* ── DOWNLOAD FLOW (local storage mode) ── */
+async function downloadAndDecrypt() {
+  if (!authToken) return toast('Generate a token first (Step 1)', 'error');
+  const s3Key = document.getElementById('s3KeyInput').value.trim();
+  const pw    = document.getElementById('downloadPassword').value;
+  const manualType = document.getElementById('fileType').value.trim() || 'application/octet-stream';
+  if (!s3Key) return toast('Enter the file key', 'error');
+  if (!pw)    return toast('Enter the decryption password', 'error');
+
+  const btn = document.getElementById('downloadBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Fetching…';
+  showProgress('downloadProgress','downloadBar','downloadPct','downloadPhase', 20, 'Requesting file…');
+
+  try {
+    /* Step 1 — get the file URL (+ real name/type) from our server */
+    const res = await fetch('/api/download?key=' + encodeURIComponent(s3Key), {
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
+
+    if (!res.ok) throw new Error('Server error ' + res.status);
+    const { presignedUrl, error, originalFilename, contentType } = await res.json();
+    if (error) throw new Error(error);
+
+    // Prefer what the server knows about the file; fall back to the
+    // manual "Original file type" field only if the server has nothing.
+    const decryptType = contentType || manualType;
+    const downloadName = originalFilename || 'decrypted-file';
+
+    showProgress('downloadProgress','downloadBar','downloadPct','downloadPhase', 50, 'Downloading encrypted file…');
+
+    /* Step 2 — fetch the encrypted file (auth header required for local route) */
+    const fileRes = await fetch(presignedUrl, {
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
+    if (!fileRes.ok) throw new Error('File fetch failed ' + fileRes.status);
+    const encBlob = await fileRes.blob();
+
+    showProgress('downloadProgress','downloadBar','downloadPct','downloadPhase', 80, 'Decrypting…');
+    btn.innerHTML = '<div class="spinner"></div> Decrypting…';
+
+    /* Step 3 — decrypt in browser */
+    const decBlob = await decryptFile(encBlob, pw, decryptType);
+
+    showProgress('downloadProgress','downloadBar','downloadPct','downloadPhase', 100, 'Complete ✓');
+
+    /* Step 4 — trigger download using the REAL filename (with extension) */
+    const url  = URL.createObjectURL(decBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = downloadName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Decrypted and saved';
+    btn.classList.add('btn-success');
+    toast('File decrypted and downloaded!', 'success');
+    fireConfetti();
+    setTimeout(() => hideProgress('downloadProgress'), 1500);
+
+  } catch(e) {
+    hideProgress('downloadProgress');
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download and decrypt';
+    const msg = e.message.toLowerCase().includes('operation') ? 'Wrong password or corrupted file' : e.message;
+    toast('Failed: ' + msg, 'error');
+  }
+}
+
+/* ── Copy key ── */
+function copyKey() {
+  const key = document.getElementById('s3KeyText').textContent;
+  navigator.clipboard.writeText(key).then(() => toast('File key copied to clipboard', 'info'));
+}
+
+/* ── Init ── */
+renderHistory();
+</script>
+</body>
+</html>
