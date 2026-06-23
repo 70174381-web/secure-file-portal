@@ -17,7 +17,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-const BUCKET = "files";
+const BUCKET = "Files";
 
 app.use(helmet({
   crossOriginResourcePolicy: false,
